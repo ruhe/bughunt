@@ -73,7 +73,7 @@
         next-coll (:next_collection_link resp)]
     (do (callback entries)
         (when next-coll
-          (get-lp-collection next-coll callback)))))
+          (get-lp-collection! next-coll callback)))))
 
 (defn search-tasks! [project-name callback]
   (let [url (str (format PROJECT_URL project-name) "?"

@@ -38,9 +38,43 @@
     (sql/insert bugs
                 (sql/values (dissoc row :tags :is-duplicate)))))
 
+(def report-fields
+  [:assignee
+   :bug_id
+   :importance
+   :milestone
+   :status
+   :target
+   :title])
+
+(defn translate-filter [base f]
+  (let [k (first f)
+        v (second f)]
+    (cond
+      (coll? v) (-> base (sql/where {k [in v]}))
+      :else (-> base (sql/where {k v})))))
+
+(defn translate-filters [base filters]
+  (reduce translate-filter base filters))
+
+
+(def base-report
+  (-> (sql/select* bugs)
+      (#(apply sql/fields % report-fields))))
 
 (defn report [filters]
-  (sql/select bugs
-              (sql/fields :bug_id :title :assignee :target :milestone
-                      :importance :status)
-              (sql/where filters)))
+  (sql/exec (translate-filters base-report filters)))
+
+
+(defn- base-topn [n field]
+  (-> (sql/select* bugs)
+      (sql/fields field)
+      (sql/aggregate (count field) :cnt)
+      (sql/group field)
+      (sql/order :cnt :DESC)
+      (sql/limit n)))
+
+(defn topn
+  ([n field] (topn n field {}))
+  ([n field filters]
+   (sql/exec (translate-filters (base-topn n field) filters))))
