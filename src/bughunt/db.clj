@@ -3,7 +3,8 @@
             [clj-time.coerce :as tc]
             [korma.db :as db]
             [korma.core :as sql]
-            [bughunt.constants :as const]))
+            [bughunt.constants :as const]
+            [bughunt.helpers :as h]))
 
 ;; Setup database connection
 
@@ -65,10 +66,12 @@
   (-> (sql/select* bugs)
       (#(apply sql/fields % report-fields))))
 
-(defn report [filters]
+(defn- report-internal [filters]
   (sql/exec (translate-filters base-report filters)))
 
-;; Various "TOP N something" operations
+(def report (h/memoize-ttl report-internal))
+
+;; "TOP N by something" operations
 
 (defn- base-topn [n field]
   (-> (sql/select* bugs)
@@ -78,7 +81,9 @@
       (sql/order :cnt :DESC)
       (sql/limit n)))
 
-(defn topn
+(defn- topn-internal
   ([n field] (topn n field {}))
   ([n field filters]
    (sql/exec (translate-filters (base-topn n field) filters))))
+
+(def topn (h/memoize-ttl topn-internal))
