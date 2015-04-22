@@ -25,7 +25,10 @@
 (defn split-url
   "Splits given url in a vector of url parts"
   [url]
-  (clojure.string/split url #"/"))
+  (if url
+    (filter #(not (empty? %))
+            (clojure.string/split url #"/"))
+    nil))
 
 (defn last-part-of-url [url]
   (if url

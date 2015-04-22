@@ -1,8 +1,3 @@
-CREATE DATABASE demo;
-GRANT ALL PRIVILEGES ON demo.* TO 'demo'@'localhost' IDENTIFIED BY 'demo';
-
-use demo;
-
 CREATE TABLE bugs (
        bug_id int(11),
        title varchar(320),

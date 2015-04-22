@@ -11,50 +11,76 @@
 (def ACTIVE_MILESTONES_URL
   "https://api.launchpad.net/1.0/%s/active_milestones")
 
-(def lp-date-formatter
-  (time-format/formatter "YYYY-MM-DD'T'HH:mm:ss.SSSSSSZ"))
-
 ;; Common functions
 
-(defn- link->user-id [link]
+(defn link->user-id [link]
   (let [x (last-part-of-url link)]
     (if x
       (subs x 1)
       nil)))
 
-(defn- parse-lp-date [date-str]
+(def ^:private lp-date-formatter
+  (time-format/formatter "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZ"))
+
+(defn parse-lp-date [date-str]
   (try
     (time-format/parse lp-date-formatter date-str)
-    (catch Exception e
+    (catch Exception _
       nil)))
 
 ;; Projects
 
-(defn- get-active-milestones [project-name]
+(defn transform-active-milestones-resp [resp]
   (map #(select-keys % [:name :title])
-       (:entries (http-get (format ACTIVE_MILESTONES_URL
-                                   project-name)))))
+       (:entries resp)))
 
-(defn- get-project [name]
+(defn get-active-milestones [project-name]
+  (-> (format ACTIVE_MILESTONES_URL project-name)
+      (http-get)
+      (transform-active-milestones-resp)))
+
+(defn transform-project-resp [resp]
+  (select-keys resp [:title :name]))
+
+(defn get-project-info [project-name]
+  (-> (format PROJECT_URL project-name)
+      (http-get)
+      (transform-project-resp)))
+
+(defn get-project [project-name]
   (into
-    (select-keys (http-get (format PROJECT_URL name))
-                 [:title :name])
-    {:active_milestones (get-active-milestones name)}))
+    (get-project-info project-name)
+    {:active-milestones (get-active-milestones project-name)}))
 
 ;; Bugs
 
-(defn- duplicate? [bug]
+(defn- duplicate-bug? [bug]
   (some? (:duplicate_of_link bug)))
 
-(defn get-bug-internal [url]
-  (let [raw (http-get url)]
-    {:bug_id (:id raw)
-     :title (:title raw)
-     :tags (:tags raw)
-     :is-duplicate (duplicate? raw)
-     :owner (link->user-id (:owner_link raw))}))
+(defn transform-bug [raw]
+  {:bug_id        (:id raw)
+   :title         (:title raw)
+   :tags          (:tags raw)
+   :owner         (link->user-id (:owner_link raw))
+   :is-duplicate? (duplicate-bug? raw)})
 
-(def get-bug (memoize-ttl get-bug-internal))
+(defn- get-bug-internal [url]
+  (transform-bug (http-get url)))
+
+(def get-bug-info (memoize-ttl get-bug-internal))
+
+(defn transform-bug-task [raw]
+  {:importance (:importance raw)
+   :status     (:status raw)
+   :target     (:bug_target_name raw)
+   :milestone  (last-part-of-url (:milestone_link raw))
+   :assignee   (link->user-id (:assignee_link raw))})
+
+(defn construct-bug [raw-bug-task]
+  (into
+   (transform-bug-task raw-bug-task)
+   [(get-bug-info (:bug_link raw-bug-task))
+    (map-selected parse-lp-date raw-bug-task const/BUG_DATE_FIELDS)]))
 
 ;; Search tasks
 
@@ -67,25 +93,15 @@
     "omit_duplicates" "false"
     "status" const/BUG_STATUSES}))
 
-(defn- get-lp-collection! [url callback]
+(defn- get-lp-collection [url callback]
   (let [resp (http-get url)
         entries (:entries resp)
         next-coll (:next_collection_link resp)]
     (do (callback entries)
         (when next-coll
-          (get-lp-collection! next-coll callback)))))
+          (get-lp-collection next-coll callback)))))
 
-(defn search-tasks! [project-name callback]
+(defn search-bug-tasks [project-name callback]
   (let [url (str (format PROJECT_URL project-name) "?"
-        (generate-search-parameters 0 100))]
-    (get-lp-collection! url callback)))
-
-(defn xform-task [raw]
-  (into
-   {:importance (:importance raw)
-    :status     (:status raw)
-    :target     (:bug_target_name raw)
-    :milestone  (last-part-of-url (:milestone_link raw))
-    :assignee   (link->user-id (:assignee_link raw))}
-   [(get-bug (:bug_link raw))
-    (map-selected parse-lp-date raw const/BUG_DATE_FIELDS)]))
+                 (generate-search-parameters 0 100))]
+    (get-lp-collection url callback)))

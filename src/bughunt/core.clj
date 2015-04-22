@@ -14,10 +14,10 @@
   (dotimes [_ num-consumers]
     (async/thread
       (while true
-        (let [raw-task (async/<!! in-chan)
-              data (lp/xform-task raw-task)]
-          (when-not (:is_duplicate data)
-            (async/>!! out-chan data)))))))
+        (let [raw-data (async/<!! in-chan)
+              parsed (lp/construct-bug raw-data)]
+          (when-not (:is_duplicate parsed)
+            (async/>!! out-chan parsed)))))))
 
 (defn start-async-aggregator
   "Ineffective consumer. Inserts values one by one
@@ -32,6 +32,6 @@
   (do
     (start-async-consumers 8)
     (start-async-aggregator)
-    (lp/search-tasks! project
-                      #(doseq [task %]
-                         (async/>!! in-chan task)))))
+    (lp/search-bug-tasks project
+                         #(doseq [task %]
+                            (async/>!! in-chan task)))))

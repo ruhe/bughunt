@@ -1,5 +1,6 @@
 (ns bughunt.db
   (:require [clojure.set :as st]
+            [clojure.tools.logging :as log]
             [clj-time.coerce :as tc]
             [korma.db :as db]
             [korma.core :as sql]
@@ -25,17 +26,22 @@
 (defn- tranform-dates [f ent]
   (generic-transform f ent const/BUG_DATE_FIELDS))
 
-(sql/defentity
-  bugs
-  (sql/prepare #(tranform-dates tc/to-sql-time %))
-  (sql/transform #(tranform-dates tc/from-sql-time %)))
+(sql/defentity bugs
+               (sql/table :BUGS)
+               (sql/prepare #(tranform-dates tc/to-sql-time %))
+               (sql/transform #(tranform-dates tc/from-sql-time %)))
 
+;; Delete Operations
+
+(defn delete-bug [bug-id]
+  (sql/delete bugs (sql/where {:bug_id bug-id})))
 
 ;; Insert Operations
 
 (defn insert-bug [row]
+  (log/debug "Inserting bug task " row)
   (do
-    (sql/delete bugs (sql/where {:bug_id (:bug_id row)}))
+    (delete-bug (:bug_id row))
     (sql/insert bugs
                 (sql/values (dissoc row :tags :is-duplicate)))))
 
@@ -69,7 +75,7 @@
 (defn- report-internal [filters]
   (sql/exec (translate-filters base-report filters)))
 
-(def report (h/memoize-ttl report-internal))
+(def bug-report (h/memoize-ttl report-internal))
 
 ;; "TOP N by something" operations
 
@@ -82,7 +88,7 @@
       (sql/limit n)))
 
 (defn- topn-internal
-  ([n field] (topn n field {}))
+  ([n field] (topn-internal n field {}))
   ([n field filters]
    (sql/exec (translate-filters (base-topn n field) filters))))
 
