@@ -62,7 +62,7 @@
    :title         (:title raw)
    :tags          (:tags raw)
    :owner         (link->user-id (:owner_link raw))
-   :is-duplicate? (duplicate-bug? raw)})
+   :is-duplicate (duplicate-bug? raw)})
 
 (defn- get-bug-internal [url]
   (transform-bug (http-get url)))

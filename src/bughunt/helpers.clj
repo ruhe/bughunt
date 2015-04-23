@@ -1,5 +1,6 @@
 (ns bughunt.helpers
-  (:require [clojure.core.memoize :as memo]
+  (:require [clojure.string :as str]
+            [clojure.core.memoize :as memo]
             [clj-http.client :as http]
             [clojure.tools.logging :as log]))
 
@@ -15,6 +16,15 @@
   (let [x (select-keys coll keyseq)]
     (zipmap (keys x)
             (map f (vals x)))))
+
+(defn transform-keys [f m]
+  (zipmap (map (comp keyword f) (keys m)) (vals m)))
+
+(defn underscorify-keys [m]
+  (transform-keys #(str/replace (name %) #"-" "_") m))
+
+(defn dashify-keys [m]
+  (transform-keys #(str/replace (name %) #"_" "-") m))
 
 ;;--------------------- HTTP stuff-----------------------;;
 

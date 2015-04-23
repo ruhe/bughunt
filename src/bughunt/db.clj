@@ -1,5 +1,5 @@
 (ns bughunt.db
-  (:require [clojure.set :as st]
+  (:require [clojure.set :as set]
             [clojure.tools.logging :as log]
             [clj-time.coerce :as tc]
             [korma.db :as db]
@@ -20,16 +20,19 @@
   [f ent fields]
   (let [update-fn f
         ent ent
-        fields (vec (st/intersection (set (keys ent)) (set fields)))]
+        fields (vec (set/intersection (set (keys ent)) (set fields)))]
     (reduce #(update-in %1 [%2] update-fn) ent fields)))
 
 (defn- tranform-dates [f ent]
   (generic-transform f ent const/BUG_DATE_FIELDS))
 
-(sql/defentity bugs
-               (sql/table :BUGS)
-               (sql/prepare #(tranform-dates tc/to-sql-time %))
-               (sql/transform #(tranform-dates tc/from-sql-time %)))
+(sql/defentity
+  bugs
+  (sql/table :BUGS)
+  (sql/prepare #(h/underscorify-keys %))
+  (sql/prepare #(tranform-dates tc/to-sql-time %))
+  (sql/transform #(h/dashify-keys %))
+  (sql/transform #(tranform-dates tc/from-sql-time %)))
 
 ;; Delete Operations
 
@@ -41,7 +44,7 @@
 (defn insert-bug [row]
   (log/debug "Inserting bug task " row)
   (do
-    (delete-bug (:bug_id row))
+    (delete-bug (:bug-id row))
     (sql/insert bugs
                 (sql/values (dissoc row :tags :is-duplicate)))))
 

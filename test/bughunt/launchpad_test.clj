@@ -1,6 +1,5 @@
 (ns bughunt.launchpad-test
   (:require [clojure.test :refer :all]
-            [clj-time.format :as tf]
             [clj-time.core :as t]
             [bughunt.launchpad :refer :all]
             [bughunt.helpers :as h]))
@@ -83,7 +82,7 @@
           :title "Title"
           :tags ["tag1" "tag2"]
           :owner "ruhe"
-          :is-duplicate? false}
+          :is-duplicate false}
          (transform-bug raw-bug))))
 
 (def raw-bug-task

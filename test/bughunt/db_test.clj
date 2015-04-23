@@ -31,7 +31,7 @@
 (def pk-seq (atom 1))
 
 (defn- create-bug []
-  {:bug_id         (swap! pk-seq inc)
+  {:bug-id         (swap! pk-seq inc)
    :title          "the title"
    :owner          "ruhe"
    :importance     "Critical"
@@ -39,8 +39,8 @@
    :target         "foo"
    :milestone      "1.0"
    :assignee       "ruhe"
-   :date_assigned  (t/now)
-   :date_confirmed (t/now)})
+   :date-assigned  (t/now)
+   :date-confirmed (t/now)})
 
 
 (deftest test-insert-bug-task
