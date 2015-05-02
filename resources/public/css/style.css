@@ -1,0 +1,18 @@
+a {
+    color: #0033AA;
+}
+
+.table {
+    font-size: 12px;
+    font-family: Ubuntu, "Bitstream Vera Sans", "DejaVu Sans", Tahoma, sans-serif;
+}
+
+td.description {
+    word-wrap: break-word;
+    min-width: 420px;
+    max-width: 420px;
+}
+
+td {
+    border-top: 1px dotted #ddd !important;
+}

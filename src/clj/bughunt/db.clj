@@ -31,7 +31,7 @@
   (sql/table :BUGS)
   (sql/prepare #(h/underscorify-keys %))
   (sql/prepare #(tranform-dates tc/to-sql-time %))
-  (sql/transform #(h/dashify-keys %))
+  ;;(sql/transform #(h/dashify-keys %))
   (sql/transform #(tranform-dates tc/from-sql-time %)))
 
 ;; Delete Operations

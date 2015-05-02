@@ -1,4 +1,4 @@
-(ns bughunt.core
+(ns bughunt.lpimport
   (:require [bughunt.launchpad :as lp]
             [bughunt.db :as db]
             [clojure.core.async :as async]))
